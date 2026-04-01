@@ -1,0 +1,32 @@
+name: traffic-signal-env
+description: AI environment for optimizing traffic signals to reduce congestion
+
+version: 1.0
+
+entrypoint: inference.py
+
+tasks:
+  - id: easy
+    description: Reduce total cars below 20
+    max_steps: 20
+
+  - id: medium
+    description: Balance traffic between both lanes
+    max_steps: 30
+
+  - id: hard
+    description: Optimize traffic over long duration
+    max_steps: 50
+
+environment:
+  observation_space:
+    lane1: int
+    lane2: int
+    signal: string
+
+  action_space:
+    action: string  # switch or stay
+
+reward:
+  type: numeric
+  range: [-100, 100]
