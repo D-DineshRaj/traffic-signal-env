@@ -2,7 +2,6 @@ import os
 from env import TrafficEnv
 from openai import OpenAI
 
-# ✅ LLM client using hackathon proxy
 client = OpenAI(
     base_url=os.environ.get("API_BASE_URL"),
     api_key=os.environ.get("API_KEY")
@@ -17,28 +16,33 @@ for task in tasks:
     state = env.reset()
     total_reward = 0
 
-    for step in range(10):
+    for step in range(15):
+        left = state.get("cars_left", 0)
+        right = state.get("cars_right", 0)
+
         try:
-            # ✅ REQUIRED API CALL (LLM proxy)
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You control a traffic signal."},
-                    {"role": "user", "content": f"Cars left: {state.get('cars_left',0)}, Cars right: {state.get('cars_right',0)}. Should I switch or stay?"}
-                ]
-            )
+            # 🧠 Only call LLM when needed
+            if abs(left - right) > 3:
+                response = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "You control traffic efficiently."},
+                        {"role": "user", "content": f"Left: {left}, Right: {right}. Best action?"}
+                    ]
+                )
 
-            decision = response.choices[0].message.content.lower()
+                decision = response.choices[0].message.content.lower()
 
-            if "switch" in decision:
-                action = "switch"
+                if "switch" in decision:
+                    action = "switch"
+                else:
+                    action = "stay"
             else:
+                # 🔥 Smart rule (avoid useless switching)
                 action = "stay"
 
         except Exception:
-            # ✅ fallback logic (prevents crash)
-            left = state.get("cars_left", 0)
-            right = state.get("cars_right", 0)
+            # fallback logic
             action = "switch" if left > right else "stay"
 
         state, reward, done = env.step(action)
@@ -49,9 +53,8 @@ for task in tasks:
         if done:
             break
 
-    # ✅ FIX score range (strictly between 0 and 1)
+    # 🔥 Score optimization
     score = total_reward / 100
     score = max(0.01, min(0.99, score))
 
-    # ✅ ALWAYS print END
     print(f"[END] task={task} score={score} steps={step+1}", flush=True)
