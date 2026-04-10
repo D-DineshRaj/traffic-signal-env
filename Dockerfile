@@ -1,9 +1,10 @@
-FROM python:3.10
+FROM python:3.9
 
 WORKDIR /app
 
 COPY . /app
 
-RUN pip install --no-cache-dir
+# ✅ install from requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python", "inference.py"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
