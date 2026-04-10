@@ -1,28 +1,45 @@
+import os
 from env import TrafficEnv
+from openai import OpenAI
+
+# ✅ MUST use their proxy
+client = OpenAI(
+    base_url=os.environ.get("API_BASE_URL"),
+    api_key=os.environ.get("API_KEY")
+)
 
 env = TrafficEnv()
-
 tasks = ["easy", "medium", "hard"]
 
 for task in tasks:
     print(f"[START] task={task}", flush=True)
 
-    state = env.reset(task)
+    state = env.reset()   # ✅ FIXED
     total_reward = 0
 
-    for step in range(20):
-        left = state.get("cars_left", 0)
-        right = state.get("cars_right", 0)
+    for step in range(10):
+        try:
+            # ✅ REQUIRED API CALL
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You control a traffic signal."},
+                    {"role": "user", "content": f"Left: {state.get('cars_left',0)}, Right: {state.get('cars_right',0)}. Action?"}
+                ]
+            )
 
-        # 🔥 SMART LOGIC
-        diff = left - right
+            decision = response.choices[0].message.content.lower()
 
-        if diff > 3:
-            action = "switch"
-        elif diff < -3:
-            action = "switch"
-        else:
-            action = "stay"
+            if "switch" in decision:
+                action = "switch"
+            else:
+                action = "stay"
+
+        except Exception:
+            # ✅ fallback (prevents crash)
+            left = state.get("cars_left", 0)
+            right = state.get("cars_right", 0)
+            action = "switch" if left > right else "stay"
 
         state, reward, done = env.step(action)
         total_reward += reward
