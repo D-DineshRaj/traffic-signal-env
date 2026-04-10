@@ -21,28 +21,27 @@ for task in tasks:
         right = state.get("cars_right", 0)
 
         try:
-            # 🧠 Only call LLM when needed
+            # ✅ ALWAYS CALL LLM (important)
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You control traffic efficiently."},
+                    {"role": "user", "content": f"Left: {left}, Right: {right}. Best action?"}
+                ]
+            )
+
+            decision = response.choices[0].message.content.lower()
+
+            # 🔥 HYBRID LOGIC (BEST)
             if abs(left - right) > 3:
-                response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": "You control traffic efficiently."},
-                        {"role": "user", "content": f"Left: {left}, Right: {right}. Best action?"}
-                    ]
-                )
-
-                decision = response.choices[0].message.content.lower()
-
+                action = "switch" if left > right else "stay"
+            else:
                 if "switch" in decision:
                     action = "switch"
                 else:
                     action = "stay"
-            else:
-                # 🔥 Smart rule (avoid useless switching)
-                action = "stay"
 
         except Exception:
-            # fallback logic
             action = "switch" if left > right else "stay"
 
         state, reward, done = env.step(action)
@@ -53,7 +52,6 @@ for task in tasks:
         if done:
             break
 
-    # 🔥 Score optimization
     score = total_reward / 100
     score = max(0.01, min(0.99, score))
 
