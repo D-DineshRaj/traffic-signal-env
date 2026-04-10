@@ -2,7 +2,7 @@ import os
 from env import TrafficEnv
 from openai import OpenAI
 
-# ✅ MUST use their proxy
+# ✅ LLM client using hackathon proxy
 client = OpenAI(
     base_url=os.environ.get("API_BASE_URL"),
     api_key=os.environ.get("API_KEY")
@@ -14,17 +14,17 @@ tasks = ["easy", "medium", "hard"]
 for task in tasks:
     print(f"[START] task={task}", flush=True)
 
-    state = env.reset()   # ✅ FIXED
+    state = env.reset()
     total_reward = 0
 
     for step in range(10):
         try:
-            # ✅ REQUIRED API CALL
+            # ✅ REQUIRED API CALL (LLM proxy)
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You control a traffic signal."},
-                    {"role": "user", "content": f"Left: {state.get('cars_left',0)}, Right: {state.get('cars_right',0)}. Action?"}
+                    {"role": "user", "content": f"Cars left: {state.get('cars_left',0)}, Cars right: {state.get('cars_right',0)}. Should I switch or stay?"}
                 ]
             )
 
@@ -36,7 +36,7 @@ for task in tasks:
                 action = "stay"
 
         except Exception:
-            # ✅ fallback (prevents crash)
+            # ✅ fallback logic (prevents crash)
             left = state.get("cars_left", 0)
             right = state.get("cars_right", 0)
             action = "switch" if left > right else "stay"
@@ -49,6 +49,9 @@ for task in tasks:
         if done:
             break
 
-    score = max(0, min(1, total_reward / 100))
+    # ✅ FIX score range (strictly between 0 and 1)
+    score = total_reward / 100
+    score = max(0.01, min(0.99, score))
 
+    # ✅ ALWAYS print END
     print(f"[END] task={task} score={score} steps={step+1}", flush=True)
