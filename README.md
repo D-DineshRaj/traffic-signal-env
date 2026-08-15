@@ -1,4 +1,4 @@
-# 🚦 Traffic Signal Optimization using OpenEnv (Meta Hackathon)
+# 🚦 Traffic Signal Optimization using OpenEnv
 # Traffic Signal Optimization Environment
 
 ## Description
